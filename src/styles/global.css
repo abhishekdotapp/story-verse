@@ -1,0 +1,165 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Pixelify+Sans:wght@400;500;600;700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	color-scheme: dark;
+	--bg-primary: #0a0a0f;
+	--bg-secondary: #13131a;
+	--bg-tertiary: #1a1a24;
+	--accent-purple: #a855f7;
+	--accent-pink: #ec4899;
+	--accent-cyan: #06b6d4;
+	--accent-yellow: #fbbf24;
+	--accent-green: #10b981;
+	--danger: #ef4444;
+	--success: #22c55e;
+	--text-primary: #ffffff;
+	--text-secondary: #a1a1aa;
+	--glow-purple: rgba(168, 85, 247, 0.4);
+	--glow-pink: rgba(236, 72, 153, 0.4);
+	--glow-cyan: rgba(6, 182, 212, 0.4);
+	font-family: "Pixelify Sans", "VT323", monospace;
+	background: linear-gradient(135deg, #0a0a0f 0%, #13131a 50%, #0f0f15 100%);
+	min-height: 100vh;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	margin: 0;
+	overflow-x: hidden;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+body {
+	margin: 0;
+	color: var(--text-primary);
+	background-attachment: fixed;
+}
+
+a {
+	color: inherit;
+	text-decoration: none;
+}
+
+button {
+	font-family: inherit;
+}
+
+#root {
+	min-height: 100vh;
+	position: relative;
+}
+
+/* Animated Background Blobs */
+@keyframes float {
+	0%, 100% { transform: translate(0, 0) rotate(0deg); }
+	25% { transform: translate(20px, 20px) rotate(5deg); }
+	50% { transform: translate(-10px, 30px) rotate(-5deg); }
+	75% { transform: translate(-20px, -10px) rotate(3deg); }
+}
+
+@keyframes glow-pulse {
+	0%, 100% { opacity: 0.5; filter: blur(40px); }
+	50% { opacity: 0.8; filter: blur(60px); }
+}
+
+.glass-card {
+	background: linear-gradient(
+		135deg,
+		rgba(255, 255, 255, 0.05),
+		rgba(255, 255, 255, 0.01)
+	);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 20px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+	backdrop-filter: blur(20px);
+	transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+	border-color: rgba(168, 85, 247, 0.5);
+	box-shadow: 0 8px 32px rgba(168, 85, 247, 0.2);
+	transform: translateY(-2px);
+}
+
+.neon-border {
+	position: relative;
+	border: 2px solid transparent;
+	background: linear-gradient(var(--bg-secondary), var(--bg-secondary)) padding-box,
+				linear-gradient(135deg, var(--accent-purple), var(--accent-pink)) border-box;
+	border-radius: 16px;
+}
+
+.neon-glow {
+	box-shadow: 0 0 20px var(--glow-purple),
+				0 0 40px var(--glow-purple),
+				inset 0 0 20px rgba(168, 85, 247, 0.1);
+}
+
+.gradient-text {
+	background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink), var(--accent-cyan));
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+/* Hide scrollbar for horizontal scroll navigation */
+.scrollbar-hide {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}
+
+/* Floating Animation Blob Elements - Hide on mobile for performance */
+.floating-blob {
+	position: fixed;
+	width: 300px;
+	height: 300px;
+	border-radius: 50%;
+	filter: blur(80px);
+	opacity: 0.3;
+	animation: float 20s ease-in-out infinite;
+	pointer-events: none;
+	z-index: 0;
+	display: none; /* Hidden on mobile by default */
+}
+
+@media (min-width: 640px) {
+	.floating-blob {
+		display: block;
+	}
+}
+
+.blob-purple {
+	background: var(--glow-purple);
+	top: 10%;
+	left: 10%;
+	animation-delay: 0s;
+}
+
+.blob-pink {
+	background: var(--glow-pink);
+	top: 60%;
+	right: 10%;
+	animation-delay: 7s;
+}
+
+.blob-cyan {
+	background: var(--glow-cyan);
+	bottom: 10%;
+	left: 50%;
+	animation-delay: 14s;
+}
