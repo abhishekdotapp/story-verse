@@ -5,8 +5,7 @@ import { useAccount } from "wagmi";
 import type { SavedStory } from "../../hooks/useCreateStory";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
-import { PaymentBadge } from "../payment/PaymentBadge";
-import { getTotalEarnings, getStoryEarnings, formatUsdc } from "../../utils/x402";
+import { getTotalEarnings } from "../../utils/x402";
 
 export const MyStories = () => {
 	const { address } = useAccount();
@@ -145,19 +144,14 @@ export const MyStories = () => {
 											? "Licensed IP"
 											: story.status === "license_registered"
 												? "Registered"
-												: story.status === "derivative_registered"
-													? "Derivative"
-													: (story.status ?? "Draft")}
-									</Badge>
-									<PaymentBadge
-										requiresPayment={story.requiresPayment}
-										readingFee={story.readingFee}
-										compact
-									/>
-								</div>
-								<span className="text-xs text-gray-500">
-									{new Date(story.timestamp).toLocaleDateString()}
-								</span>
+											: story.status === "derivative_registered"
+												? "Derivative"
+												: (story.status ?? "Draft")}
+								</Badge>
+							</div>
+							<span className="text-xs text-gray-500">
+								{new Date(story.timestamp).toLocaleDateString()}
+							</span>
 							</div>
 
 							<h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">
@@ -193,19 +187,9 @@ export const MyStories = () => {
 										<span className="text-green-400 font-mono text-xs">
 											{String(story.licenseTermsId).slice(0, 8)}...
 										</span>
-									</div>
-								) : null}
-							{story.requiresPayment && address && (
-								<div className="flex items-center justify-between text-xs pt-2 border-t border-gray-800">
-									<span className="text-gray-500">Earnings:</span>
-									<span className="text-green-400 font-mono">
-										{getStoryEarnings(story.id, address).totalAmount} IP ({getStoryEarnings(story.id, address).paymentCount} payments)
-									</span>
 								</div>
-							)}
-							</div>
-
-							{story.ipId && (
+							) : null}
+						</div>							{story.ipId && (
 								<div className="rounded-lg bg-gray-900/60 border border-gray-800 p-3 mb-4">
 									<p className="text-xs text-gray-500 mb-1">IP Asset ID</p>
 									<code className="text-xs text-purple-400 font-mono break-all">

@@ -2,7 +2,7 @@ import clsx from "clsx";
 import type { HTMLAttributes } from "react";
 
 type Props = HTMLAttributes<HTMLSpanElement> & {
-	tone?: "default" | "success" | "danger" | "info";
+	tone?: "default" | "success" | "danger" | "info" | "warning";
 };
 
 export const Badge = ({ tone = "default", className, ...props }: Props) => {
@@ -14,6 +14,7 @@ export const Badge = ({ tone = "default", className, ...props }: Props) => {
 		danger:
 			"bg-[rgba(255,91,107,0.15)] text-[#fecdd3] border border-[rgba(255,91,107,0.5)]",
 		info: "bg-[rgba(56,189,248,0.1)] text-[#bae6fd] border border-[rgba(56,189,248,0.35)]",
+		warning: "bg-[rgba(251,191,36,0.15)] text-[#fef3c7] border border-[rgba(251,191,36,0.35)]",
 	};
 
 	return (

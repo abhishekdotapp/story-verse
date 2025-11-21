@@ -1,6 +1,6 @@
 import { StoryClient, type StoryConfig } from "@story-protocol/core-sdk";
 import { custom } from "viem";
-import type { WalletClient } from "wagmi";
+import type { WalletClient } from "viem";
 
 import { storyTestnet } from "./storyChain";
 

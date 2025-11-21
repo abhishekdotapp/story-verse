@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Sparkles, Feather, BookMarked, Scroll, Pen, Menu, X } from "lucide-react";
+import { BookOpen, Sparkles, Feather, BookMarked, Scroll, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { CreateStoryForm } from "./components/story/CreateStoryForm";

@@ -1,6 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { parseEther } from "viem";
 import { useAccount } from "wagmi";
+import { getWalletClient } from "wagmi/actions";
+import { wagmiConfig } from "../lib/wagmiConfig";
 
 import { createStoryProtocolClient } from "../lib/storySdkClient";
 import { uploadDisputeEvidenceToIPFS, DisputeTag } from "../utils/disputeUtils";
@@ -45,14 +47,15 @@ export const useCreateDispute = () => {
 			});
 
 			// Step 1: Upload evidence to IPFS
-			console.log("📤 Uploading dispute evidence to IPFS...");
-			const evidenceCID = await uploadDisputeEvidenceToIPFS(input.evidence);
-			console.log("✅ Evidence uploaded:", evidenceCID);
+		console.log("📤 Uploading dispute evidence to IPFS...");
+		const evidenceCID = await uploadDisputeEvidenceToIPFS(input.evidence);
+		console.log("✅ Evidence uploaded:", evidenceCID);
 
-			// Step 2: Create Story Protocol client and raise dispute
-			const client = createStoryProtocolClient(address);
+		// Step 2: Create Story Protocol client and raise dispute
+		const walletClient = await getWalletClient(wagmiConfig, { account: address });
+		if (!walletClient) throw new Error("Wallet client not available");
 
-			console.log("⚖️ Raising dispute on-chain...");
+		const client = createStoryProtocolClient(walletClient);			console.log("⚖️ Raising dispute on-chain...");
 			const disputeResponse = await client.dispute.raiseDispute({
 				targetIpId: input.targetIpId as `0x${string}`,
 				cid: evidenceCID,
