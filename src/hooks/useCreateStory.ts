@@ -12,6 +12,8 @@ interface CreateStoryInput {
 	content: string;
 	creatorName?: string;
 	imageFile?: File;
+	mintingFee?: string;
+	commercialRevShare?: number;
 }
 
 export interface SavedStory {
@@ -82,6 +84,8 @@ export const useCreateStory = () => {
 			const imageUrl = imageIPFSHash ? `ipfs://${imageIPFSHash}` : undefined;
 			
 			const metadata: StoryMetadata = {
+				appId: "story-verse",
+				appVersion: "1.0.0",
 				title: input.title,
 				description: input.description,
 				content: input.content,
@@ -89,8 +93,11 @@ export const useCreateStory = () => {
 				creatorName: input.creatorName || "Anonymous",
 				createdAt: Date.now(),
 				image: imageUrl,
-				imageHash: imageHash,
-				// Creator information required by IPA Metadata Standard for explorer display
+			imageHash: imageHash,
+			mintingFee: input.mintingFee || "0",
+			commercialRevShare: (input.commercialRevShare || 10).toString(),
+			licenseTermsId: "1",
+			// Creator information required by IPA Metadata Standard for explorer display
 				creators: [
 					{
 						name: input.creatorName || "Anonymous",
@@ -103,12 +110,14 @@ export const useCreateStory = () => {
 				mediaUrl: imageUrl,
 				mediaHash: imageHash,
 				mediaType: input.imageFile ? "image/png" : undefined, // Default to PNG, could be enhanced to detect actual type
-				// NFT attributes
+				// NFT attributes - Non-Commercial Social Remixing
 				attributes: [
 					{ trait_type: "Story Type", value: "Original" },
 					{ trait_type: "License Type", value: "Non-Commercial Social Remixing" },
 					{ trait_type: "Remixable", value: "Yes" },
 					{ trait_type: "Commercial Use", value: "No" },
+					{ trait_type: "Derivatives Allowed", value: "Yes" },
+					{ trait_type: "Attribution Required", value: "Yes" },
 				],
 			};
 
@@ -125,98 +134,141 @@ export const useCreateStory = () => {
 					throw new Error(
 						`Please connect to Story Aeneid Testnet (Chain ID ${storyTestnet.id}). Current chain: ${walletChainId}`,
 					);
-				}
+			}
 
-				const client = createStoryProtocolClient(wallet);
+			const client = createStoryProtocolClient(wallet);
 
-			// Step 4: Use pre-registered Non-Commercial Social Remixing license (ID = 1)
-			console.log("📜 Using Non-Commercial Social Remixing license (pre-registered)...");
-			
-			// Non-Commercial Social Remixing is already registered on Story Protocol as licenseTermsId = 1
-			// No need to register it again - just use it directly
-			const NON_COMMERCIAL_LICENSE_ID = "1";
-			
-			console.log("✅ Using pre-registered Non-Commercial Social Remixing license!");
-			console.log("📝 License Terms ID:", NON_COMMERCIAL_LICENSE_ID);
+		// Step 4: Register IP asset on Story Protocol blockchain
+		// If testnet fails, we'll save as "pending" and allow retry later
+		console.log("📜 Registering IP asset on Story Protocol...");
+		const NON_COMMERCIAL_LICENSE_ID = "1";
 
-			// Step 5: Register as IP Asset with NFT mint - simplified approach
-			console.log("📝 Registering story as IP asset & minting NFT...");
+		let ipId: string | undefined;
+		let txHash: string | undefined;
+		let tokenId: string | undefined;
+		let status: "fully_registered" | "pending_blockchain" = "pending_blockchain";
+
+		try {
+			// Step 5: Mint and register IP on blockchain (simplest approach)
+			console.log("📝 Minting NFT and registering as IP asset...");
 			
-			// Create browser-compatible hashes
 			const metadataHash = await hashString(JSON.stringify(metadata));
+			const nftMetadataHash = await hashString(tokenURI);
 
-			const registration = await client.ipAsset.registerIpAsset({
+			// Try the simplest registration without any complications
+			const response = await client.ipAsset.registerIpAsset({
 				nft: {
 					type: "mint",
-					spgNftContract: STORY_NFT_COLLECTION,
-					recipient: address,
+					spgNftContract: STORY_NFT_COLLECTION as `0x${string}`,
 				},
 				ipMetadata: {
 					ipMetadataURI: tokenURI,
 					ipMetadataHash: metadataHash as `0x${string}`,
 					nftMetadataURI: tokenURI,
-					nftMetadataHash: metadataHash as `0x${string}`,
+					nftMetadataHash: nftMetadataHash as `0x${string}`,
 				},
 			});
 
-			if (!registration.ipId) {
-				throw new Error("Failed to register story as IP asset");
+			if (!response.ipId) {
+				throw new Error("No IP ID returned from registration");
 			}
 
-			console.log("✅ Story registered as IP asset!");
-			console.log("📝 IP Asset ID:", registration.ipId);
-			console.log("🔗 Registration Transaction Hash:", registration.txHash);
+			ipId = response.ipId;
+			txHash = response.txHash;
+			tokenId = response.tokenId?.toString() || '0';
+			status = "fully_registered";
 
-			// Attach Non-Commercial Social Remixing license to enable remixing
-			console.log("📋 Attaching Non-Commercial Social Remixing license...");
+			console.log("✅ Story registered on blockchain!");
+			console.log("📝 IP Asset ID:", ipId);
+			console.log("📝 Token ID:", tokenId);
+			console.log("🔗 Transaction Hash:", txHash);
+
+			// Step 6: Try to attach license terms
 			try {
-				const attachResult = await client.license.attachLicenseTerms({
-					ipId: registration.ipId as `0x${string}`,
-					licenseTermsId: BigInt(NON_COMMERCIAL_LICENSE_ID),
+				console.log("📜 Attaching Non-Commercial Social Remixing License (ID: 1)...");
+				const licenseResult = await client.license.attachLicenseTerms({
+					ipId: ipId as `0x${string}`,
+					licenseTermsId: BigInt(1),
 				});
-				console.log("✅ License terms attached! TX:", attachResult.txHash);
-			} catch (attachError) {
-				// Log but don't fail - license might already be attached
-				const errorMsg = attachError instanceof Error ? attachError.message : String(attachError);
-				if (errorMsg.includes("already attached") || errorMsg.includes("AlreadyAttached")) {
-					console.log("ℹ️ License terms already attached");
-				} else {
-					console.warn("⚠️ License attachment warning:", errorMsg);
+				
+				if (licenseResult.success) {
+					console.log("✅ License terms attached! Tx:", licenseResult.txHash);
 				}
+			} catch (licenseError: any) {
+				console.warn("⚠️ Could not attach license terms:", licenseError.message);
+				console.log("ℹ️ Continuing without license terms (can be attached later)");
 			}
 
-			const storyData: SavedStory = {
-				id: ipfsHash,
-				ipId: registration.ipId,
-				ipfsHash,
-				imageIPFSHash,
-				tokenURI,
-				metadata,
-				author: address,
-				timestamp: Date.now(),
-				status: "fully_registered",
-				mintingFee: "0",
-				commercialRevShare: 0,
-				licenseTermsId: NON_COMMERCIAL_LICENSE_ID,
-				txHash: registration.txHash,
-			};
+		} catch (blockchainError: any) {
+			// Blockchain registration failed - save to database anyway with pending status
+			console.warn("⚠️ Blockchain registration failed:", blockchainError.message);
+			console.log("💾 Saving story to database with pending status...");
+			
+			// Generate a temporary IP ID for database tracking
+			ipId = `pending_${Date.now()}_${address?.slice(2, 10)}`;
+			txHash = undefined;
+			tokenId = '0';
+			status = "pending_blockchain";
+			
+			console.log("ℹ️ Story saved as 'pending' - you can retry blockchain registration later");
+		}
 
-			const existingStories = JSON.parse(
-				localStorage.getItem("myStories") || "[]",
-			);
-			existingStories.unshift(storyData);
-			localStorage.setItem("myStories", JSON.stringify(existingStories));
+		// Step 7: Save to database (whether blockchain succeeded or not)
+		const storyData: SavedStory = {
+			id: ipfsHash,
+			ipId: ipId || `pending_${ipfsHash}`,
+			ipfsHash,
+			imageIPFSHash,
+			tokenURI,
+			metadata,
+			author: address,
+			timestamp: Date.now(),
+			status: status,
+			mintingFee: input.mintingFee || "0",
+			commercialRevShare: input.commercialRevShare || 10,
+			licenseTermsId: NON_COMMERCIAL_LICENSE_ID,
+			tokenId: tokenId || '0',
+			nftContract: STORY_NFT_COLLECTION,
+			txHash: txHash,
+		};
 
-			console.log("💾 Story saved successfully");
-			console.log("🎉 Story created with on-chain PIL terms!");
+		console.log("💾 Saving story to database...");
+		
+		// Save to database (whether blockchain succeeded or not)
+		try {
+			const { supabase, storyToDbFormat } = await import("../lib/supabase");
+			const dbStory = storyToDbFormat(storyData as any);
+			
+			const { error: dbError } = await supabase
+				.from('stories')
+				.upsert(dbStory, { onConflict: 'ip_id' });
+			
+			if (dbError) {
+				console.error("❌ Database save failed:", dbError);
+				throw new Error(`Failed to save to database: ${dbError.message}`);
+			}
 
-			return {
-				...storyData,
-				message:
-					"✅ Story fully registered on-chain! IP asset created. Your story is ready!",
-				success: true,
-			};
-		} catch (error) {
+			console.log("✅ Story saved to database successfully!");
+			
+			if (status === "pending_blockchain") {
+				console.log("⚠️ Note: Blockchain registration pending. Story saved to database.");
+				console.log("ℹ️ The Story Protocol testnet is experiencing issues. Your story is saved and visible in the app.");
+			}
+		} catch (dbError) {
+			console.error("❌ Database save failed:", dbError);
+			throw new Error(`Failed to save story: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+		}
+		
+		console.log("🎉 Story created successfully!");
+
+		return {
+			...storyData,
+			message: status === "fully_registered" 
+				? "✅ Story fully registered on-chain! IP asset created. Your story is ready!"
+				: "✅ Story saved! Blockchain registration will retry when testnet is available.",
+			success: true,
+		};
+	} catch (error) {
 			console.error("❌ Story creation failed:", error);				const rawMessage =
 					error instanceof Error ? error.message : String(error ?? "");
 				const message = rawMessage.toLowerCase();

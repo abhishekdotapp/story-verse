@@ -268,11 +268,6 @@ export const RemixStoryForm = ({ story, onCompleted }: Props) => {
 								{result.ipId}
 							</code>
 						</p>
-						{result.licenseTokenId && (
-							<p>
-								<strong>License Token:</strong> #{result.licenseTokenId}
-							</p>
-						)}
 						{result.txHash && (
 							<a
 								href={`https://aeneid.storyscan.xyz/tx/${result.txHash}`}

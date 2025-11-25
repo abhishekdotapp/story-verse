@@ -18,6 +18,12 @@ const schema = z.object({
 	description: z.string().min(10, "Description must be at least 10 characters"),
 	content: z.string().min(100, "Story content must be at least 100 characters"),
 	creatorName: z.string().optional(),
+	mintingFee: z.string().optional(),
+	commercialRevShare: z.string().optional().refine((val) => {
+		if (!val) return true; // Allow empty
+		const num = Number.parseFloat(val);
+		return !Number.isNaN(num) && num >= 0 && num <= 100;
+	}, "Revenue share must be between 0 and 100"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -83,6 +89,8 @@ export const CreateStoryForm = () => {
 			content: data.content,
 			creatorName: data.creatorName || "Anonymous",
 			imageFile: imageFile || undefined,
+			mintingFee: data.mintingFee || "0",
+			commercialRevShare: Number.parseFloat(data.commercialRevShare || "10"),
 		});
 		setResult(result);
 		form.reset({
@@ -236,13 +244,13 @@ export const CreateStoryForm = () => {
 						>
 							Story Content
 						</label>
-						<Textarea
-							id={fieldIds.content}
-							placeholder="Write your story here... (minimum 100 characters)"
-							rows={10}
-							{...form.register("content")}
-							className="bg-gray-900/50 font-mono text-sm"
-						/>
+					<Textarea
+						id={fieldIds.content}
+						placeholder="Write your story here... (minimum 100 characters)"
+						rows={10}
+						{...form.register("content")}
+						className="bg-gray-900/50 font-mono text-sm"
+					/>
 						{form.formState.errors.content && (
 							<p className="text-xs text-red-400">
 								{form.formState.errors.content.message}
@@ -250,24 +258,79 @@ export const CreateStoryForm = () => {
 						)}
 					</div>
 
-					<div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
-						<h3 className="mb-2 text-sm font-semibold text-blue-300">
-							📜 License Type
-						</h3>
-						<div className="space-y-2">
-							<p className="text-sm text-gray-300">
-								<strong>Non-Commercial Social Remixing</strong>
-							</p>
-							<ul className="text-xs text-gray-400 space-y-1 ml-4">
-								<li>✅ Free for anyone to remix and share</li>
-								<li>✅ Remixers inherit the same license terms</li>
-								<li>❌ Commercial use not allowed</li>
-								<li>✅ Attribution required</li>
-							</ul>
+				<div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-4">
+					<h3 className="mb-3 text-sm font-semibold text-purple-300">
+						💰 License Terms (Stored in Metadata)
+					</h3>
+					<p className="text-xs text-gray-400 mb-3">
+						These values are saved in your story metadata for future reference. Currently using Non-Commercial Social Remixing license.
+					</p>
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<label className="text-sm font-medium text-gray-300">
+									Minting Fee (IP Tokens)
+								</label>
+								<Input
+									type="number"
+									min="0"
+									step="0.01"
+									placeholder="0"
+									{...form.register("mintingFee")}
+									className="bg-gray-900/50"
+								/>
+								<p className="text-xs text-gray-400">
+									Fee required to mint a license for remixing
+								</p>
+								{form.formState.errors.mintingFee && (
+									<p className="text-xs text-red-400">
+										{form.formState.errors.mintingFee.message}
+									</p>
+								)}
+							</div>
+							<div className="space-y-2">
+								<label className="text-sm font-medium text-gray-300">
+									Revenue Share (%)
+								</label>
+								<Input
+									type="number"
+									min="0"
+									max="100"
+									step="1"
+									placeholder="10"
+									{...form.register("commercialRevShare")}
+									className="bg-gray-900/50"
+								/>
+								<p className="text-xs text-gray-400">
+									Percentage of derivative revenue you receive
+								</p>
+								{form.formState.errors.commercialRevShare && (
+									<p className="text-xs text-red-400">
+										{form.formState.errors.commercialRevShare.message}
+									</p>
+								)}
+							</div>
 						</div>
 					</div>
 
-					<div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4">
+				<div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
+					<h3 className="mb-2 text-sm font-semibold text-blue-300">
+						📜 Active License Type
+					</h3>
+					<div className="space-y-2">
+						<p className="text-sm text-gray-300">
+							<strong>Non-Commercial Social Remixing</strong>
+						</p>
+						<ul className="text-xs text-gray-400 space-y-1 ml-4">
+							<li>✅ Free for anyone to remix and share</li>
+							<li>✅ Remixers inherit the same license terms</li>
+							<li>❌ Commercial use not allowed</li>
+							<li>✅ Attribution required</li>
+						</ul>
+						<p className="text-xs text-yellow-400 mt-2">
+							💡 Tip: Minting fee and revenue share are saved in metadata for your records but not enforced by the non-commercial license.
+						</p>
+					</div>
+				</div>					<div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4">
 						<h3 className="mb-3 text-sm font-semibold text-cyan-300">
 							🔗 Transaction Preview
 						</h3>
@@ -289,30 +352,22 @@ export const CreateStoryForm = () => {
 							<div className="flex items-start gap-3">
 								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">3</div>
 								<div>
-									<p className="font-semibold text-gray-300">Register License Terms On-Chain</p>
-									<p className="text-gray-400">Create Non-Commercial Social Remixing license (costs gas)</p>
-									<Badge className="mt-1 bg-cyan-500/20 text-cyan-300">Transaction #1</Badge>
+									<p className="font-semibold text-gray-300">Mint NFT & Register IP Asset</p>
+									<p className="text-gray-400">Create NFT on Story network and register as IP asset</p>
+									<Badge className="mt-1 bg-purple-500/20 text-purple-300">Transaction #1</Badge>
 								</div>
 							</div>
 							<div className="flex items-start gap-3">
 								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">4</div>
 								<div>
-									<p className="font-semibold text-gray-300">Mint NFT & Register IP Asset</p>
-									<p className="text-gray-400">Create NFT on Story network and register as IP asset</p>
-									<Badge className="mt-1 bg-cyan-500/20 text-cyan-300">Transaction #2</Badge>
-								</div>
-							</div>
-							<div className="flex items-start gap-3">
-								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">5</div>
-								<div>
-									<p className="font-semibold text-gray-300">Attach License to IP Asset</p>
-									<p className="text-gray-400">Enable others to mint licenses and remix your story</p>
-									<Badge className="mt-1 bg-cyan-500/20 text-cyan-300">Transaction #3</Badge>
+									<p className="font-semibold text-gray-300">Attach Non-Commercial License</p>
+									<p className="text-gray-400">Enable free remixing with attribution (License ID: 1)</p>
+									<Badge className="mt-1 bg-green-500/20 text-green-300">Automatic</Badge>
 								</div>
 							</div>
 						</div>
 						<div className="mt-3 rounded-lg bg-gray-800/50 p-2 text-xs text-gray-400">
-							<p>⏱️ <strong>Total time:</strong> 1-2 minutes • <strong>Transactions:</strong> 3 on-chain • <strong>Gas fee:</strong> Varies by network congestion</p>
+							<p>⏱️ <strong>Total time:</strong> 30-60 seconds • <strong>Transactions:</strong> 1 on-chain • <strong>Cost:</strong> Free (testnet) or ~$0.01 (mainnet)</p>
 						</div>
 					</div>
 

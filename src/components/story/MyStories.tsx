@@ -1,42 +1,16 @@
 import { motion } from "framer-motion";
-import { BookOpen, CheckCircle, Copy, ExternalLink, DollarSign } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { BookOpen, CheckCircle, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { useAccount } from "wagmi";
 import type { SavedStory } from "../../hooks/useCreateStory";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
-import { getTotalEarnings } from "../../utils/x402";
+import { useFetchMyStoriesFromDb } from "../../hooks/useFetchStoriesFromDb";
 
 export const MyStories = () => {
 	const { address } = useAccount();
-	const [stories, setStories] = useState<SavedStory[]>([]);
+	const { data: stories = [], isLoading } = useFetchMyStoriesFromDb(address);
 	const [copiedId, setCopiedId] = useState<string | null>(null);
-	const [totalEarnings, setTotalEarnings] = useState({ totalAmount: "0.00", paymentCount: 0, paidStories: [] as string[] });
-
-	const loadStories = useCallback(() => {
-		try {
-			const savedStories = JSON.parse(
-				localStorage.getItem("myStories") || "[]",
-			);
-			// Filter stories by current connected address
-			const userStories = savedStories.filter(
-				(story: SavedStory) =>
-					story.author.toLowerCase() === address?.toLowerCase(),
-			);
-			setStories(userStories);
-		} catch (error) {
-			console.error("Error loading stories:", error);
-			setStories([]);
-		}
-	}, [address]);
-
-	useEffect(() => {
-		loadStories();
-		if (address) {
-			const earnings = getTotalEarnings(address);
-			setTotalEarnings(earnings);
-		}
-	}, [loadStories, address]);
 
 	const copyToClipboard = (text: string, id: string) => {
 		navigator.clipboard.writeText(text);
@@ -54,6 +28,18 @@ export const MyStories = () => {
 				<p className="text-gray-400">
 					Please connect your wallet to view your stories
 				</p>
+			</Card>
+		);
+	}
+
+	if (isLoading) {
+		return (
+			<Card className="p-8 text-center">
+				<Loader2 className="mx-auto h-12 w-12 text-purple-500 mb-4 animate-spin" />
+				<h3 className="text-xl font-semibold text-white mb-2">
+					Loading Your Stories...
+				</h3>
+				<p className="text-gray-400">Fetching from blockchain</p>
 			</Card>
 		);
 	}
@@ -78,45 +64,6 @@ export const MyStories = () => {
 					{stories.length} {stories.length === 1 ? "story" : "stories"} created
 				</p>
 			</div>
-
-			{/* Earnings Summary */}
-			{totalEarnings.paymentCount > 0 && (
-				<Card className="p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30">
-					<div className="flex items-center gap-3 mb-4">
-						<div className="p-2 rounded-full bg-purple-500/20">
-							<DollarSign className="h-5 w-5 text-purple-400" />
-						</div>
-						<div>
-							<h3 className="text-lg font-semibold text-white">
-								Total Earnings
-							</h3>
-							<p className="text-xs text-gray-400">
-								From pay-to-read stories
-							</p>
-						</div>
-					</div>
-					<div className="grid grid-cols-3 gap-4">
-						<div className="text-center">
-							<p className="text-2xl font-bold text-purple-400">
-								{totalEarnings.totalAmount} IP
-							</p>
-							<p className="text-xs text-gray-400">IP Earned</p>
-						</div>
-						<div className="text-center">
-							<p className="text-2xl font-bold text-purple-400">
-								{totalEarnings.paymentCount}
-							</p>
-							<p className="text-xs text-gray-400">Payments</p>
-						</div>
-						<div className="text-center">
-							<p className="text-2xl font-bold text-purple-400">
-								{totalEarnings.paidStories.length}
-							</p>
-							<p className="text-xs text-gray-400">Paid Stories</p>
-						</div>
-					</div>
-				</Card>
-			)}
 
 			<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
 				{stories.map((story, index) => (

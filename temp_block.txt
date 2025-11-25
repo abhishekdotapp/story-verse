@@ -1,0 +1,17 @@
+﻿			};
+
+			try {
+				const existingStories: SavedStory[] = JSON.parse(
+					localStorage.getItem("myStories") || "[]",
+				);
+				existingStories.unshift(derivativeStory);
+				localStorage.setItem("myStories", JSON.stringify(existingStories));
+				console.log("ðŸ’¾ Remix saved to local storage");
+			} catch (storageError) {
+				console.warn("âš ï¸ Unable to persist remix locally:", storageError);
+			}
+
+			console.log("ðŸŽ‰ Remix created successfully!");
+
+			return {
+				ipId: registration.ipId,

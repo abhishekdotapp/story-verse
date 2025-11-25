@@ -1,39 +1,48 @@
 import { motion } from "framer-motion";
-import { BookOpen, Calendar, ExternalLink, User, Image as ImageIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { BookOpen, Calendar, ExternalLink, User, Image as ImageIcon, Loader2 } from "lucide-react";
+import { useState } from "react";
 import type { SavedStory } from "../../hooks/useCreateStory";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { RemixStoryForm } from "./RemixStoryForm";
 import { getIPFSUrl } from "../../utils/ipfs";
+import { useFetchStoriesFromDb } from "../../hooks/useFetchStoriesFromDb";
 
 export const Marketplace = () => {
-	const [stories, setStories] = useState<SavedStory[]>([]);
+	const { data: stories = [], isLoading, error } = useFetchStoriesFromDb();
 	const [selectedStory, setSelectedStory] = useState<SavedStory | null>(null);
-
-	useEffect(() => {
-		loadAllStories();
-	}, []);
-
-	const loadAllStories = () => {
-		try {
-			const savedStories = JSON.parse(
-				localStorage.getItem("myStories") || "[]",
-			);
-			// Sort by newest first
-			const sortedStories = savedStories.sort(
-				(a: SavedStory, b: SavedStory) => b.timestamp - a.timestamp,
-			);
-			setStories(sortedStories);
-		} catch (error) {
-			console.error("Error loading stories:", error);
-			setStories([]);
-		}
-	};
 
 	const formatAddress = (address: string) => {
 		return `${address.slice(0, 6)}...${address.slice(-4)}`;
 	};
+
+	if (isLoading) {
+		return (
+			<Card className="p-8 text-center">
+				<Loader2 className="mx-auto h-12 w-12 text-purple-500 mb-4 animate-spin" />
+				<h3 className="text-xl font-semibold text-white mb-2">
+					Loading Stories from Blockchain...
+				</h3>
+				<p className="text-gray-400">
+					Fetching IP assets from Story Protocol
+				</p>
+			</Card>
+		);
+	}
+
+	if (error) {
+		return (
+			<Card className="p-8 text-center">
+				<BookOpen className="mx-auto h-12 w-12 text-red-500 mb-4" />
+				<h3 className="text-xl font-semibold text-white mb-2">
+					Error Loading Stories
+				</h3>
+				<p className="text-gray-400">
+					{error instanceof Error ? error.message : "Failed to fetch stories"}
+				</p>
+			</Card>
+		);
+	}
 
 	if (stories.length === 0) {
 		return (
@@ -302,7 +311,7 @@ export const Marketplace = () => {
 
 							<RemixStoryForm
 								story={selectedStory}
-								onCompleted={loadAllStories}
+								onCompleted={() => setSelectedStory(null)}
 							/>
 						</div>
 					</motion.div>

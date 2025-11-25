@@ -45,7 +45,20 @@ export interface IpCreator {
 	}>;
 }
 
-export interface StoryMetadata {
+	export interface StoryMetadata {
+	// App identifier to filter stories
+	appId?: string;
+	appVersion?: string;
+
+	// IP Asset information
+	ipId?: string;
+	tokenId?: string;
+	
+	// License terms
+	mintingFee?: string;
+	commercialRevShare?: string;
+	licenseTermsId?: string;
+
 	// Required for explorer display
 	title: string;
 	description: string;

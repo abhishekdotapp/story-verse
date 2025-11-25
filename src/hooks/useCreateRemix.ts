@@ -6,7 +6,6 @@ import { STORY_NFT_COLLECTION } from "../lib/simpleNFT";
 import { createStoryProtocolClient } from "../lib/storySdkClient";
 import { storyTestnet } from "../lib/storyChain";
 import { type StoryMetadata, uploadToIPFS } from "../utils/ipfs";
-import type { SavedStory } from "./useCreateStory";
 
 // Browser-compatible hash function using SHA-256
 async function hashString(str: string): Promise<string> {
@@ -52,49 +51,23 @@ export const useCreateRemix = () => {
 
 			const storyClient = createStoryProtocolClient(walletClient);
 
-			// 0. Attach license terms to parent IP if not already attached
-			console.log("📋 Ensuring license terms are attached to parent IP...");
-			try {
-				await storyClient.license.attachLicenseTerms({
-					ipId: input.parentIpId,
-					licenseTermsId: BigInt(input.licenseTermsId),
-				});
-				console.log("✅ License terms attached to parent IP");
-			} catch (error) {
-				// License terms might already be attached, continue
-				const errorMsg = error instanceof Error ? error.message : String(error);
-				if (errorMsg.includes("already attached") || errorMsg.includes("AlreadyAttached")) {
-					console.log("ℹ️ License terms already attached to parent IP");
-				} else {
-					console.warn("⚠️ Failed to attach license terms, attempting to continue:", errorMsg);
-				}
-			}
+			// Note: The SDK will automatically mint the license token from the parent if needed
+			// during registerDerivativeIpAsset, so we don't need to manually handle that
 
-			// 1. Mint License Token from parent story
-			console.log("📜 Minting license token...");
-			const mintResult = await storyClient.license.mintLicenseTokens({
-				licenseTermsId: BigInt(input.licenseTermsId),
-				licensorIpId: input.parentIpId,
-				amount: 1,
-			});
-
-			const licenseTokenId = mintResult.licenseTokenIds?.[0];
-			if (!licenseTokenId) {
-				throw new Error("Failed to mint license token");
-			}
-
-			console.log("✅ License token minted:", licenseTokenId.toString());
-			console.log("🔗 Transaction Hash:", mintResult.txHash);
-
-		// 2. Upload remix content to IPFS
+		// 1. Upload remix content to IPFS
 		console.log("📤 Uploading remix to IPFS...");
 		const metadata: StoryMetadata = {
+			appId: "story-verse",
+			appVersion: "1.0.0",
 			title: input.title,
 			description: input.description,
 			content: input.content,
 			author: address,
-			createdAt: Date.now(),
-			// Creator information required by IPA Metadata Standard for explorer display
+		createdAt: Date.now(),
+		mintingFee: input.mintingFee || "0",
+		commercialRevShare: input.commercialRevShare?.toString() || "0",
+		licenseTermsId: input.licenseTermsId,
+		// Creator information required by IPA Metadata Standard for explorer display
 			creators: [
 				{
 					name: input.creatorName || "Anonymous",
@@ -114,7 +87,7 @@ export const useCreateRemix = () => {
 
 			console.log("✅ Remix uploaded to IPFS:", tokenURI);
 
-			// 3. Register remix as IP asset AND link to parent as derivative (combined)
+			// 2. Register remix as IP asset AND link to parent as derivative (combined)
 			console.log("📝 Registering remix as derivative IP asset...");
 			
 			const metadataHash = await hashString(JSON.stringify(metadata));
@@ -149,59 +122,61 @@ export const useCreateRemix = () => {
 			console.log("📝 Child IP ID:", registration.ipId);
 			console.log("🔗 Derivative Registration TX:", registration.txHash);
 
-			// 4. Attach license terms to the derivative IP asset
-			console.log("📋 Attaching license terms to derivative...");
-			const attachLicenseResponse = await storyClient.license.attachLicenseTerms({
-				ipId: registration.ipId as `0x${string}`,
-				licenseTermsId: BigInt(input.licenseTermsId),
-			});
-
-			console.log("✅ License terms attached to derivative!");
-			console.log("🔗 License Attachment TX:", attachLicenseResponse.txHash);
-
-			// 5. Save remix to local storage
-			const derivativeStory: SavedStory = {
+			console.log("💾 Remix registered on blockchain");
+		
+		// Save to database
+		try {
+			const { supabase, storyToDbFormat } = await import("../lib/supabase");
+			const remixData = {
 				id: ipfsHash,
 				ipId: registration.ipId,
+				tokenId: registration.tokenId?.toString() || '0',
+				nftContract: STORY_NFT_COLLECTION,
 				ipfsHash,
 				tokenURI,
-				metadata,
+				imageIPFSHash: undefined,
+				metadata: {
+					title: input.title,
+					description: input.description,
+					content: input.content,
+					author: address,
+					creatorName: input.creatorName,
+				},
 				author: address,
-				timestamp: Date.now(),
-				status: "derivative_registered",
 				mintingFee: input.mintingFee || "0",
 				commercialRevShare: input.commercialRevShare || 0,
 				licenseTermsId: input.licenseTermsId,
-				parentIpId: input.parentIpId,
-				licenseTokenId: licenseTokenId.toString(),
-				derivativeTxHash: registration.txHash,
 				txHash: registration.txHash,
-				licenseAttachmentTxHash: attachLicenseResponse.txHash,
+				parentIpId: input.parentIpId,
 				remixOf: input.parentTitle,
+				status: "derivative_registered",
+				timestamp: Date.now(),
 			};
-
-			try {
-				const existingStories: SavedStory[] = JSON.parse(
-					localStorage.getItem("myStories") || "[]",
-				);
-				existingStories.unshift(derivativeStory);
-				localStorage.setItem("myStories", JSON.stringify(existingStories));
-				console.log("💾 Remix saved to local storage");
-			} catch (storageError) {
-				console.warn("⚠️ Unable to persist remix locally:", storageError);
+			
+			const dbStory = storyToDbFormat(remixData as any);
+			
+			const { error: dbError } = await supabase
+				.from('stories')
+				.upsert(dbStory, { onConflict: 'ip_id' });
+			
+			if (dbError) {
+				console.warn("⚠️ Failed to save remix to database:", dbError.message);
+			} else {
+				console.log("✅ Remix saved to database");
 			}
+		} catch (dbError) {
+			console.warn("⚠️ Database save error:", dbError);
+		}
 
-			console.log("🎉 Remix created successfully!");
-
-			return {
+		console.log("🎉 Remix created successfully!");
+		
+		return {
 				ipId: registration.ipId,
 				ipfsHash,
 				tokenURI,
-				licenseTokenId: licenseTokenId.toString(),
 				parentIpId: input.parentIpId,
 				txHash: registration.txHash,
 				derivativeTxHash: registration.txHash,
-				licenseAttachmentTxHash: attachLicenseResponse.txHash,
 			};
 		},
 	});
