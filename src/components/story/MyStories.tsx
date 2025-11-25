@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { BookOpen, CheckCircle, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import type { SavedStory } from "../../hooks/useCreateStory";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { useFetchMyStoriesFromDb } from "../../hooks/useFetchStoriesFromDb";

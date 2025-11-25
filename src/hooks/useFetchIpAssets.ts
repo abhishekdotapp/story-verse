@@ -5,25 +5,8 @@ import { STORY_NFT_COLLECTION, SIMPLE_NFT_ABI } from "../lib/simpleNFT";
 import type { SavedStory } from "./useCreateStory";
 import { fetchMetadataFromIPFS, convertIpfsMetadataToStory } from "../utils/ipfsMetadata";
 
-// IP Asset Registry contract address on Story Aeneid
-const IP_ASSET_REGISTRY = "0x28E59E91C0467e89fd0f0438D47Ca839cDfEc095" as const;
-
-// Simplified ABI for IPRegistered event
-const IP_REGISTRY_ABI = [
-	{
-		type: "event",
-		name: "IPRegistered",
-		inputs: [
-			{ name: "ipId", type: "address", indexed: true },
-			{ name: "chainId", type: "uint256", indexed: true },
-			{ name: "tokenContract", type: "address", indexed: true },
-			{ name: "tokenId", type: "uint256", indexed: false },
-			{ name: "resolverAddr", type: "address", indexed: false },
-			{ name: "metadataProviderAddr", type: "address", indexed: false },
-			{ name: "metadata", type: "bytes", indexed: false },
-		],
-	},
-] as const;
+// Note: Currently unused - using Supabase for better performance
+// Kept for potential future direct blockchain queries
 
 // ERC721 Transfer event ABI
 const TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)');
