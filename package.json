@@ -10,6 +10,7 @@
 		"lint": "biome check src"
 	},
 	"dependencies": {
+		"@google/generative-ai": "^0.24.1",
 		"@hookform/resolvers": "^5.2.2",
 		"@radix-ui/react-dialog": "^1.1.3",
 		"@radix-ui/react-icons": "^1.3.1",
@@ -24,8 +25,10 @@
 		"clsx": "^2.1.1",
 		"dotenv": "^17.2.3",
 		"framer-motion": "^12.5.0",
+		"groq-sdk": "^0.37.0",
 		"gsap": "^3.13.0",
 		"lucide-react": "^0.470.0",
+		"openai": "^6.9.1",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
 		"react-hook-form": "^7.53.1",

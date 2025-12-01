@@ -67,23 +67,30 @@ export const useCreateStory = () => {
 				"✨ Starting story creation with on-chain licensing...",
 			);
 
-			try {
-				// Step 1: Upload image to IPFS if provided
-				let imageIPFSHash: string | undefined;
-				let imageHash: string | undefined;
-				if (input.imageFile) {
-					console.log("🖼️ Uploading NFT cover image to IPFS...");
-					imageIPFSHash = await uploadFileToIPFS(input.imageFile);
-					imageHash = await hashFile(input.imageFile);
-					console.log("✅ Image uploaded to IPFS:", imageIPFSHash);
-					console.log("✅ Image hash:", imageHash);
-				}
+		try {
+			// Step 1: Upload image to IPFS if provided, or use default ippy.svg
+			let imageIPFSHash: string | undefined;
+			let imageHash: string | undefined;
+			if (input.imageFile) {
+				console.log("🖼️ Uploading NFT cover image to IPFS...");
+				imageIPFSHash = await uploadFileToIPFS(input.imageFile);
+				imageHash = await hashFile(input.imageFile);
+				console.log("✅ Image uploaded to IPFS:", imageIPFSHash);
+				console.log("✅ Image hash:", imageHash);
+			} else {
+				// Use default ippy.svg
+				console.log("🖼️ Using default ippy.svg as NFT cover...");
+				const response = await fetch("/ippy.svg");
+				const svgBlob = await response.blob();
+				const defaultImageFile = new File([svgBlob], "ippy.svg", { type: "image/svg+xml" });
+				imageIPFSHash = await uploadFileToIPFS(defaultImageFile);
+				imageHash = await hashFile(defaultImageFile);
+				console.log("✅ Default image uploaded to IPFS:", imageIPFSHash);
+			}
 
-			// Step 2: Upload to IPFS
-			console.log("📤 Uploading story to IPFS...");
-			const imageUrl = imageIPFSHash ? `ipfs://${imageIPFSHash}` : undefined;
-			
-			const metadata: StoryMetadata = {
+		// Step 2: Upload to IPFS
+		console.log("📤 Uploading story to IPFS...");
+		const imageUrl = imageIPFSHash ? `ipfs://${imageIPFSHash}` : undefined;			const metadata: StoryMetadata = {
 				appId: "story-verse",
 				appVersion: "1.0.0",
 				title: input.title,
@@ -96,7 +103,7 @@ export const useCreateStory = () => {
 			imageHash: imageHash,
 			mintingFee: input.mintingFee || "0",
 			commercialRevShare: (input.commercialRevShare || 10).toString(),
-			licenseTermsId: "1",
+			licenseTermsId: "commercial",
 			// Creator information required by IPA Metadata Standard for explorer display
 				creators: [
 					{
@@ -109,15 +116,16 @@ export const useCreateStory = () => {
 				// Media URL and hash for commercial infringement checking
 				mediaUrl: imageUrl,
 				mediaHash: imageHash,
-				mediaType: input.imageFile ? "image/png" : undefined, // Default to PNG, could be enhanced to detect actual type
-				// NFT attributes - Non-Commercial Social Remixing
+				mediaType: input.imageFile ? (input.imageFile.type || "image/png") : "image/svg+xml", // SVG for default ippy
+				// NFT attributes - Commercial Use with Revenue Share
 				attributes: [
 					{ trait_type: "Story Type", value: "Original" },
-					{ trait_type: "License Type", value: "Non-Commercial Social Remixing" },
+					{ trait_type: "License Type", value: "Commercial Use" },
 					{ trait_type: "Remixable", value: "Yes" },
-					{ trait_type: "Commercial Use", value: "No" },
+					{ trait_type: "Commercial Use", value: "Yes" },
 					{ trait_type: "Derivatives Allowed", value: "Yes" },
 					{ trait_type: "Attribution Required", value: "Yes" },
+					{ trait_type: "Revenue Share", value: `${input.commercialRevShare || 10}%` },
 				],
 			};
 
@@ -139,23 +147,52 @@ export const useCreateStory = () => {
 			const client = createStoryProtocolClient(wallet);
 
 		// Step 4: Register IP asset on Story Protocol blockchain
-		// If testnet fails, we'll save as "pending" and allow retry later
-		console.log("📜 Registering IP asset on Story Protocol...");
-		const NON_COMMERCIAL_LICENSE_ID = "1";
+		// Using COMMERCIAL license so original creator earns from remixes
+		console.log("📜 Registering IP asset with Commercial License...");
 
 		let ipId: string | undefined;
 		let txHash: string | undefined;
 		let tokenId: string | undefined;
+		let licenseTermsId: string | undefined;
 		let status: "fully_registered" | "pending_blockchain" = "pending_blockchain";
 
 		try {
-			// Step 5: Mint and register IP on blockchain (simplest approach)
+			// Step 5: Register PIL Terms for Commercial Use
+			console.log("📝 Registering Commercial License Terms...");
+			
+			const licenseResponse = await client.license.registerPILTerms({
+				transferable: true,
+				royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E" as `0x${string}`, // LAP Royalty Policy
+				defaultMintingFee: BigInt(1000000000000000000), // 1 WIP token (18 decimals)
+				expiration: BigInt(0),
+				commercialUse: true,
+				commercialAttribution: true,
+				commercializerChecker: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+				commercializerCheckerData: "0x" as `0x${string}`,
+				commercialRevShare: input.commercialRevShare || 10, // Direct percentage (0-100)
+				commercialRevCeiling: BigInt(0),
+				derivativesAllowed: true,
+				derivativesAttribution: true,
+				derivativesApproval: false,
+				derivativesReciprocal: true,
+				derivativeRevCeiling: BigInt(0),
+				currency: "0x1514000000000000000000000000000000000000" as `0x${string}`, // WIP token (whitelisted on Aeneid)
+				uri: "",
+			});
+
+			if (!licenseResponse.licenseTermsId) {
+				throw new Error("Failed to register license terms");
+			}
+
+			licenseTermsId = licenseResponse.licenseTermsId.toString();
+			console.log("✅ License Terms registered! ID:", licenseTermsId);
+
+			// Step 6: Mint NFT and register IP with license terms
 			console.log("📝 Minting NFT and registering as IP asset...");
 			
 			const metadataHash = await hashString(JSON.stringify(metadata));
 			const nftMetadataHash = await hashString(tokenURI);
 
-			// Try the simplest registration without any complications
 			const response = await client.ipAsset.registerIpAsset({
 				nft: {
 					type: "mint",
@@ -183,12 +220,12 @@ export const useCreateStory = () => {
 			console.log("📝 Token ID:", tokenId);
 			console.log("🔗 Transaction Hash:", txHash);
 
-			// Step 6: Try to attach license terms
+			// Step 7: Attach commercial license terms
 			try {
-				console.log("📜 Attaching Non-Commercial Social Remixing License (ID: 1)...");
+				console.log("📜 Attaching Commercial License Terms...");
 				const licenseResult = await client.license.attachLicenseTerms({
 					ipId: ipId as `0x${string}`,
-					licenseTermsId: BigInt(1),
+					licenseTermsId: BigInt(licenseTermsId),
 				});
 				
 				if (licenseResult.success) {
@@ -213,7 +250,7 @@ export const useCreateStory = () => {
 			console.log("ℹ️ Story saved as 'pending' - you can retry blockchain registration later");
 		}
 
-		// Step 7: Save to database (whether blockchain succeeded or not)
+		// Step 8: Save to database (whether blockchain succeeded or not)
 		const storyData: SavedStory = {
 			id: ipfsHash,
 			ipId: ipId || `pending_${ipfsHash}`,
@@ -226,7 +263,7 @@ export const useCreateStory = () => {
 			status: status,
 			mintingFee: input.mintingFee || "0",
 			commercialRevShare: input.commercialRevShare || 10,
-			licenseTermsId: NON_COMMERCIAL_LICENSE_ID,
+			licenseTermsId: licenseTermsId || undefined,
 			tokenId: tokenId || '0',
 			nftContract: STORY_NFT_COLLECTION,
 			txHash: txHash,

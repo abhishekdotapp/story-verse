@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { BookPlus, Loader2, Upload, X, Feather } from "lucide-react";
+import { BookPlus, Loader2, Upload, X, Feather, Sparkles, Check } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -10,6 +10,8 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Input } from "../ui/Input";
 import { Textarea } from "../ui/Textarea";
+import { AIStoryGenerator } from "./AIStoryGenerator";
+import { TransactionProgressModal, type TransactionStep } from "./TransactionProgressModal";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -36,6 +38,9 @@ export const CreateStoryForm = () => {
 	const [result, setResult] = useState<CreateStoryResult | null>(null);
 	const [imageFile, setImageFile] = useState<File | null>(null);
 	const [imagePreview, setImagePreview] = useState<string>("");
+	const [showAIGenerator, setShowAIGenerator] = useState(false);
+	const [showProgressModal, setShowProgressModal] = useState(false);
+	const [transactionSteps, setTransactionSteps] = useState<TransactionStep[]>([]);
 	const imageInputRef = useRef<HTMLInputElement>(null);
 	const createStory = useCreateStory();
 	const fieldIds = {
@@ -83,24 +88,117 @@ export const CreateStoryForm = () => {
 
 	const onSubmit = form.handleSubmit(async (data) => {
 		try {
-			const result = await createStory.mutateAsync({
-			title: data.title,
-			description: data.description,
-			content: data.content,
-			creatorName: data.creatorName || "Anonymous",
-			imageFile: imageFile || undefined,
-			mintingFee: data.mintingFee || "0",
-			commercialRevShare: Number.parseFloat(data.commercialRevShare || "10"),
-		});
-		setResult(result);
-		form.reset({
-			creatorName: "Anonymous",
-		});
-		removeImage();
-	} catch (error) {
-		console.error("Create story error:", error);
-	}
-});	return (
+			// Initialize progress steps
+			const steps: TransactionStep[] = [
+				{
+					id: "upload-image",
+					title: "Upload Image to IPFS",
+					description: imageFile ? "Uploading your NFT cover image..." : "No image provided, skipping...",
+					status: imageFile ? "loading" : "completed",
+				},
+				{
+					id: "upload-metadata",
+					title: "Upload Story Metadata",
+					description: "Creating metadata and uploading to IPFS...",
+					status: imageFile ? "pending" : "loading",
+				},
+				{
+					id: "register-license",
+					title: "Register Commercial License",
+					description: "Registering PIL terms with revenue share...",
+					status: "pending",
+				},
+				{
+					id: "mint-nft",
+					title: "Mint NFT & Register IP",
+					description: "Minting NFT and registering as IP Asset...",
+					status: "pending",
+				},
+				{
+					id: "attach-license",
+					title: "Attach License Terms",
+					description: "Attaching commercial license to IP Asset...",
+					status: "pending",
+				},
+				{
+					id: "save-database",
+					title: "Save to Database",
+					description: "Storing story data in Supabase...",
+					status: "pending",
+				},
+			];
+
+			setTransactionSteps(steps);
+			setShowProgressModal(true);
+
+			// Helper to update step status
+			const updateStep = (stepId: string, status: TransactionStep["status"], txHash?: string) => {
+				setTransactionSteps((prev) =>
+					prev.map((step) =>
+						step.id === stepId ? { ...step, status, txHash } : step
+					)
+				);
+			};
+
+			// Simulate progress tracking with delays
+			const progressPromise = (async () => {
+				if (imageFile) {
+					await new Promise((resolve) => setTimeout(resolve, 1500));
+					updateStep("upload-image", "completed");
+				}
+				
+				updateStep("upload-metadata", "loading");
+				await new Promise((resolve) => setTimeout(resolve, 2000));
+				updateStep("upload-metadata", "completed");
+				
+				updateStep("register-license", "loading");
+				await new Promise((resolve) => setTimeout(resolve, 2000));
+			})();
+
+			// Start the actual mutation
+			const resultPromise = createStory.mutateAsync({
+				title: data.title,
+				description: data.description,
+				content: data.content,
+				creatorName: data.creatorName || "Anonymous",
+				imageFile: imageFile || undefined,
+				mintingFee: data.mintingFee || "0",
+				commercialRevShare: Number.parseFloat(data.commercialRevShare || "10"),
+			});
+
+			// Wait for both to complete
+			await progressPromise;
+			const result = await resultPromise;
+
+			// Complete remaining steps
+			updateStep("register-license", "completed", result.licenseRegistrationTxHash);
+			updateStep("mint-nft", "loading");
+			await new Promise((resolve) => setTimeout(resolve, 500));
+			updateStep("mint-nft", "completed", result.mintTxHash);
+			
+			updateStep("attach-license", "loading");
+			await new Promise((resolve) => setTimeout(resolve, 500));
+			updateStep("attach-license", "completed", result.licenseAttachmentTxHash);
+			
+			updateStep("save-database", "loading");
+			await new Promise((resolve) => setTimeout(resolve, 500));
+			updateStep("save-database", "completed");
+
+			setResult(result);
+			form.reset({
+				creatorName: "Anonymous",
+			});
+			removeImage();
+		} catch (error) {
+			console.error("Create story error:", error);
+			// Mark the loading step as error
+			setTransactionSteps((prev) =>
+				prev.map((step) =>
+					step.status === "loading" ? { ...step, status: "error" as const } : step
+				)
+			);
+		}
+	});	return (
 		<Card className="p-6">
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
@@ -120,10 +218,35 @@ export const CreateStoryForm = () => {
 							licensing terms
 						</p>
 					</div>
+				<div className="flex items-center gap-3">
 					<Badge tone="info">Original IP</Badge>
+					<Button
+						type="button"
+						variant={showAIGenerator ? "secondary" : "primary"}
+						onClick={() => setShowAIGenerator(!showAIGenerator)}
+						className={`gap-2 ${
+							showAIGenerator 
+								? "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600" 
+								: "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+						}`}
+					>
+						<Sparkles className="h-4 w-4" />
+						{showAIGenerator ? "Manual Entry" : "AI Generator"}
+					</Button>
+				</div>
 				</div>
 
-				<form onSubmit={onSubmit} className="space-y-6">
+				{showAIGenerator ? (
+					<AIStoryGenerator
+						onAccept={(data) => {
+							form.setValue("title", data.title);
+							form.setValue("description", data.description);
+							form.setValue("content", data.content);
+							setShowAIGenerator(false);
+						}}
+					/>
+				) : (
+					<form onSubmit={onSubmit} className="space-y-6">
 					<div className="space-y-2">
 						<label
 							htmlFor={fieldIds.image}
@@ -263,7 +386,7 @@ export const CreateStoryForm = () => {
 						💰 License Terms (Stored in Metadata)
 					</h3>
 					<p className="text-xs text-gray-400 mb-3">
-						These values are saved in your story metadata for future reference. Currently using Non-Commercial Social Remixing license.
+						These values determine your earnings from remixes. Commercial license allows derivatives with automatic revenue sharing.
 					</p>
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div className="space-y-2">
@@ -318,7 +441,7 @@ export const CreateStoryForm = () => {
 					</h3>
 					<div className="space-y-2">
 						<p className="text-sm text-gray-300">
-							<strong>Non-Commercial Social Remixing</strong>
+							<strong>Commercial Use with Revenue Share</strong>
 						</p>
 						<ul className="text-xs text-gray-400 space-y-1 ml-4">
 							<li>✅ Free for anyone to remix and share</li>
@@ -327,7 +450,7 @@ export const CreateStoryForm = () => {
 							<li>✅ Attribution required</li>
 						</ul>
 						<p className="text-xs text-yellow-400 mt-2">
-							💡 Tip: Minting fee and revenue share are saved in metadata for your records but not enforced by the non-commercial license.
+							💡 Tip: Revenue share is enforced on-chain. When someone remixes your story, you automatically earn your percentage!
 						</p>
 					</div>
 				</div>					<div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4">
@@ -360,7 +483,7 @@ export const CreateStoryForm = () => {
 							<div className="flex items-start gap-3">
 								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">4</div>
 								<div>
-									<p className="font-semibold text-gray-300">Attach Non-Commercial License</p>
+									<p className="font-semibold text-gray-300">Attach Commercial License</p>
 									<p className="text-gray-400">Enable free remixing with attribution (License ID: 1)</p>
 									<Badge className="mt-1 bg-green-500/20 text-green-300">Automatic</Badge>
 								</div>
@@ -392,6 +515,7 @@ export const CreateStoryForm = () => {
 						)}
 					</Button>
 				</form>
+				)}
 
 				{result && (
 					<motion.div
@@ -413,7 +537,7 @@ export const CreateStoryForm = () => {
 							{result.licenseTermsId && (
 								<div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
 									<p className="text-xs font-semibold text-blue-400 mb-2">
-										📜 Non-Commercial Social Remixing License Registered
+											📜 Commercial Use License Registered
 									</p>
 									<div className="space-y-1 text-xs text-gray-300">
 										<p>
@@ -422,7 +546,7 @@ export const CreateStoryForm = () => {
 												{result.licenseTermsId}
 											</code>
 										</p>
-										<p>✅ Free to remix • Attribution required • Non-commercial only</p>
+											<p>✅ Commercial use allowed • Derivatives enabled • Revenue share enforced</p>
 									</div>
 								</div>
 							)}
@@ -571,7 +695,7 @@ export const CreateStoryForm = () => {
 									<li>✅ Story metadata stored permanently on IPFS</li>
 									<li>✅ NFT minted on Story testnet collection</li>
 									<li>✅ IP asset registered on Story Protocol</li>
-									<li>✅ Non-Commercial Social Remixing license registered & attached</li>
+									<li>✅ Commercial license registered with {result.commercialRevShare || 10}% revenue share</li>
 									<li>📖 Story added to "My Stories" and Marketplace tabs</li>
 									<li>🎨 Anyone can now remix your story for free (with attribution)</li>
 								</ol>
@@ -579,16 +703,14 @@ export const CreateStoryForm = () => {
 
 							<div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 mt-3">
 								<p className="text-xs font-semibold text-blue-400 mb-2">
-									📜 Non-Commercial Social Remixing:
-								</p>
-								<p className="text-xs text-gray-300">
-									Your story is protected by a PIL (Programmable IP License) that allows
-									anyone to remix and share your work freely, but not commercially.
-									Remixes inherit the same license, creating a community-driven remix tree!
-								</p>
-							</div>
-
-							<div className="flex gap-2 mt-4">
+								📜 Commercial License:
+							</p>
+							<p className="text-xs text-gray-300">
+								Your story is protected by a PIL (Programmable IP License) with commercial rights.
+								Anyone can remix your work for commercial use, and you automatically earn {result.commercialRevShare || 10}% 
+								revenue share from all derivatives. Grow your income as your story inspires others!
+							</p>
+						</div>							<div className="flex gap-2 mt-4">
 								<a
 									href={`https://ipfs.io/ipfs/${result.ipfsHash}`}
 									target="_blank"
@@ -623,6 +745,14 @@ export const CreateStoryForm = () => {
 						</p>
 					</motion.div>
 				)}
+
+				{/* Transaction Progress Modal */}
+				<TransactionProgressModal
+					isOpen={showProgressModal}
+					onClose={() => setShowProgressModal(false)}
+					steps={transactionSteps}
+					title="Creating Your Story"
+				/>
 			</motion.div>
 		</Card>
 	);
