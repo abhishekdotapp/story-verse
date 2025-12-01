@@ -160,27 +160,25 @@ export const useCreateStory = () => {
 			// Step 5: Register PIL Terms for Commercial Use
 			console.log("📝 Registering Commercial License Terms...");
 			
-			const licenseResponse = await client.license.registerPILTerms({
-				transferable: true,
-				royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E" as `0x${string}`, // LAP Royalty Policy
-				defaultMintingFee: BigInt(1000000000000000000), // 1 WIP token (18 decimals)
-				expiration: BigInt(0),
-				commercialUse: true,
-				commercialAttribution: true,
-				commercializerChecker: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-				commercializerCheckerData: "0x" as `0x${string}`,
-				commercialRevShare: input.commercialRevShare || 10, // Direct percentage (0-100)
-				commercialRevCeiling: BigInt(0),
-				derivativesAllowed: true,
-				derivativesAttribution: true,
-				derivativesApproval: false,
-				derivativesReciprocal: true,
-				derivativeRevCeiling: BigInt(0),
-				currency: "0x1514000000000000000000000000000000000000" as `0x${string}`, // WIP token (whitelisted on Aeneid)
-				uri: "",
-			});
-
-			if (!licenseResponse.licenseTermsId) {
+		const licenseResponse = await client.license.registerPILTerms({
+			transferable: true,
+			royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E" as `0x${string}`, // LAP Royalty Policy
+			defaultMintingFee: BigInt(1000000000000000000), // 1 WIP token (18 decimals)
+			expiration: BigInt(0),
+			commercialUse: true,
+			commercialAttribution: true,
+			commercializerChecker: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+			commercializerCheckerData: "0x" as `0x${string}`,
+			commercialRevShare: input.commercialRevShare || 10, // Direct percentage (0-100)
+			commercialRevCeiling: BigInt(0),
+			derivativesAllowed: true,
+			derivativesAttribution: true,
+			derivativesApproval: false,
+			derivativesReciprocal: true,
+			derivativeRevCeiling: BigInt(0),
+			currency: "0x1514000000000000000000000000000000000000" as `0x${string}`, // WIP token (whitelisted on Aeneid)
+			uri: "https://github.com/piplabs/pil-document/blob/9a1f803fcf8101a8a78f1dcc929e6014e144ab56/off-chain-terms/CommercialUse.json",
+		});			if (!licenseResponse.licenseTermsId) {
 				throw new Error("Failed to register license terms");
 			}
 
