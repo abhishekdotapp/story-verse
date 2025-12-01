@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { BookPlus, Loader2, Upload, X, Feather, Sparkles, Check } from "lucide-react";
+import { BookPlus, Loader2, Upload, X, Feather, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
