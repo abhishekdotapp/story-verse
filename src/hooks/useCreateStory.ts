@@ -68,7 +68,7 @@ export const useCreateStory = () => {
 			);
 
 		try {
-			// Step 1: Upload image to IPFS if provided, or use default ippy.svg
+			// Step 1: Upload image to IPFS if provided
 			let imageIPFSHash: string | undefined;
 			let imageHash: string | undefined;
 			if (input.imageFile) {
@@ -77,15 +77,6 @@ export const useCreateStory = () => {
 				imageHash = await hashFile(input.imageFile);
 				console.log("✅ Image uploaded to IPFS:", imageIPFSHash);
 				console.log("✅ Image hash:", imageHash);
-			} else {
-				// Use default ippy.svg
-				console.log("🖼️ Using default ippy.svg as NFT cover...");
-				const response = await fetch("/ippy.svg");
-				const svgBlob = await response.blob();
-				const defaultImageFile = new File([svgBlob], "ippy.svg", { type: "image/svg+xml" });
-				imageIPFSHash = await uploadFileToIPFS(defaultImageFile);
-				imageHash = await hashFile(defaultImageFile);
-				console.log("✅ Default image uploaded to IPFS:", imageIPFSHash);
 			}
 
 		// Step 2: Upload to IPFS
@@ -116,7 +107,7 @@ export const useCreateStory = () => {
 				// Media URL and hash for commercial infringement checking
 				mediaUrl: imageUrl,
 				mediaHash: imageHash,
-				mediaType: input.imageFile ? (input.imageFile.type || "image/png") : "image/svg+xml", // SVG for default ippy
+				mediaType: input.imageFile ? (input.imageFile.type || "image/png") : undefined,
 				// NFT attributes - Commercial Use with Revenue Share
 				attributes: [
 					{ trait_type: "Story Type", value: "Original" },

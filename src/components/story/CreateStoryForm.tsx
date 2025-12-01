@@ -444,9 +444,9 @@ export const CreateStoryForm = () => {
 							<strong>Commercial Use with Revenue Share</strong>
 						</p>
 						<ul className="text-xs text-gray-400 space-y-1 ml-4">
-							<li>✅ Free for anyone to remix and share</li>
-							<li>✅ Remixers inherit the same license terms</li>
-							<li>❌ Commercial use not allowed</li>
+							<li>✅ Commercial use allowed with WIP token minting fee</li>
+							<li>✅ Derivatives allowed with reciprocal terms</li>
+							<li>✅ Automatic revenue sharing enforced on-chain</li>
 							<li>✅ Attribution required</li>
 						</ul>
 						<p className="text-xs text-yellow-400 mt-2">
@@ -462,35 +462,51 @@ export const CreateStoryForm = () => {
 								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">1</div>
 								<div>
 									<p className="font-semibold text-gray-300">Upload Image to IPFS</p>
-									<p className="text-gray-400">Store your story image permanently on IPFS</p>
+									<p className="text-gray-400">Store your NFT cover image on IPFS (if provided)</p>
 								</div>
 							</div>
 							<div className="flex items-start gap-3">
 								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">2</div>
 								<div>
-									<p className="font-semibold text-gray-300">Upload Metadata to IPFS</p>
-									<p className="text-gray-400">Store story metadata (title, description, creator) on IPFS</p>
+									<p className="font-semibold text-gray-300">Upload Story Metadata</p>
+									<p className="text-gray-400">Create metadata and upload to IPFS</p>
 								</div>
 							</div>
 							<div className="flex items-start gap-3">
 								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">3</div>
 								<div>
-									<p className="font-semibold text-gray-300">Mint NFT & Register IP Asset</p>
-									<p className="text-gray-400">Create NFT on Story network and register as IP asset</p>
-									<Badge className="mt-1 bg-purple-500/20 text-purple-300">Transaction #1</Badge>
+									<p className="font-semibold text-gray-300">Register Commercial License</p>
+									<p className="text-gray-400">Register PIL terms with revenue share on-chain</p>
+									<Badge className="mt-1 bg-purple-500/20 text-purple-300">Transaction</Badge>
 								</div>
 							</div>
 							<div className="flex items-start gap-3">
 								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">4</div>
 								<div>
-									<p className="font-semibold text-gray-300">Attach Commercial License</p>
-									<p className="text-gray-400">Enable free remixing with attribution (License ID: 1)</p>
-									<Badge className="mt-1 bg-green-500/20 text-green-300">Automatic</Badge>
+									<p className="font-semibold text-gray-300">Mint NFT & Register IP</p>
+									<p className="text-gray-400">Mint NFT and register as IP Asset in one transaction</p>
+									<Badge className="mt-1 bg-purple-500/20 text-purple-300">Transaction</Badge>
+								</div>
+							</div>
+							<div className="flex items-start gap-3">
+								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">5</div>
+								<div>
+									<p className="font-semibold text-gray-300">Attach License Terms</p>
+									<p className="text-gray-400">Attach commercial license to your IP Asset</p>
+									<Badge className="mt-1 bg-purple-500/20 text-purple-300">Transaction</Badge>
+								</div>
+							</div>
+							<div className="flex items-start gap-3">
+								<div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-300 flex-shrink-0">6</div>
+								<div>
+									<p className="font-semibold text-gray-300">Save to Database</p>
+									<p className="text-gray-400">Store story data in Supabase</p>
+									<Badge className="mt-1 bg-green-500/20 text-green-300">Off-chain</Badge>
 								</div>
 							</div>
 						</div>
 						<div className="mt-3 rounded-lg bg-gray-800/50 p-2 text-xs text-gray-400">
-							<p>⏱️ <strong>Total time:</strong> 30-60 seconds • <strong>Transactions:</strong> 1 on-chain • <strong>Cost:</strong> Free (testnet) or ~$0.01 (mainnet)</p>
+							<p>⏱️ <strong>Total time:</strong> 60-90 seconds • <strong>Transactions:</strong> 3 on-chain • <strong>Cost:</strong> Gas fees (testnet)</p>
 						</div>
 					</div>
 
