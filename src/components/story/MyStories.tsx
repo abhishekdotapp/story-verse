@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { useFetchMyStoriesFromDb } from "../../hooks/useFetchStoriesFromDb";
+import { ClaimRoyalties } from "./ClaimRoyalties";
 
 export const MyStories = () => {
 	const { address } = useAccount();
@@ -141,6 +142,12 @@ export const MyStories = () => {
 									<code className="text-xs text-purple-400 font-mono break-all">
 										{story.ipId}
 									</code>
+								</div>
+							)}
+
+							{story.ipId && (
+								<div className="mb-4">
+									<ClaimRoyalties ipId={story.ipId} />
 								</div>
 							)}
 

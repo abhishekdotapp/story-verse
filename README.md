@@ -28,6 +28,8 @@
 - **Automatic Revenue Share**: Original creators earn 10% (customizable) from all remixes
 - **WIP Token Payments**: Uses whitelisted WIP tokens for minting fees (1 WIP default)
 - **On-Chain Enforcement**: Revenue sharing enforced automatically by smart contracts
+- **Royalty Claiming**: View and claim accumulated royalties from your IP vault
+- **Past Revenue Access**: Claim all past unclaimed royalties in one transaction
 
 ### 🔄 Story Remixing
 - **Derivative Creation**: Remix existing stories with proper attribution
@@ -105,6 +107,14 @@ http://localhost:5173
 4. **Set Revenue Share**: Configure your percentage (default 10%)
 5. **Submit**: Watch the progress modal track all 6 steps
 6. **Done**: Your story is now an IP Asset with commercial license!
+
+### Claiming Royalties
+
+1. **View Your Stories**: Navigate to "My Stories" tab
+2. **Check Claimable Amount**: Each story shows available WIP tokens to claim
+3. **Claim Royalties**: Click "Claim Royalties" button on any story
+4. **Receive Tokens**: WIP tokens are transferred directly to your wallet
+5. **Accumulated Earnings**: Claims all past unclaimed revenue in one transaction
 
 ### Remixing a Story
 
@@ -187,6 +197,7 @@ story-dapp/
 │   │   │   ├── RemixStoryForm.tsx           # Derivative creation
 │   │   │   ├── Marketplace.tsx              # Browse all stories
 │   │   │   ├── MyStories.tsx                # User's stories
+│   │   │   ├── ClaimRoyalties.tsx           # Royalty claiming UI
 │   │   │   ├── AIStoryGenerator.tsx         # AI generation UI
 │   │   │   └── TransactionProgressModal.tsx # Progress tracker
 │   │   ├── ui/                              # Reusable components
@@ -196,6 +207,7 @@ story-dapp/
 │   │   ├── useCreateStory.ts                # Story creation logic
 │   │   ├── useCreateRemix.ts                # Remix creation logic
 │   │   ├── useGenerateStory.ts              # AI generation hook
+│   │   ├── useClaimRoyalties.ts             # Royalty claiming logic
 │   │   └── useStoryGraph.ts                 # Fetch stories
 │   ├── lib/
 │   │   ├── storySdkClient.ts                # Story Protocol setup
