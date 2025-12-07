@@ -12,6 +12,7 @@ import { Input } from "../ui/Input";
 import { Textarea } from "../ui/Textarea";
 import { AIStoryGenerator } from "./AIStoryGenerator";
 import { TransactionProgressModal, type TransactionStep } from "./TransactionProgressModal";
+import { SuccessDetailsModal } from "./SuccessDetailsModal";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -40,6 +41,7 @@ export const CreateStoryForm = () => {
 	const [imagePreview, setImagePreview] = useState<string>("");
 	const [showAIGenerator, setShowAIGenerator] = useState(false);
 	const [showProgressModal, setShowProgressModal] = useState(false);
+	const [showSuccessModal, setShowSuccessModal] = useState(false);
 	const [transactionSteps, setTransactionSteps] = useState<TransactionStep[]>([]);
 	const imageInputRef = useRef<HTMLInputElement>(null);
 	const createStory = useCreateStory();
@@ -140,23 +142,24 @@ export const CreateStoryForm = () => {
 				);
 			};
 
-			// Simulate progress tracking with delays
-			const progressPromise = (async () => {
-				if (imageFile) {
-					await new Promise((resolve) => setTimeout(resolve, 1500));
-					updateStep("upload-image", "completed");
-				}
-				
-				updateStep("upload-metadata", "loading");
-				await new Promise((resolve) => setTimeout(resolve, 2000));
-				updateStep("upload-metadata", "completed");
-				
-				updateStep("register-license", "loading");
-				await new Promise((resolve) => setTimeout(resolve, 2000));
-			})();
+			// Step 1: Handle image upload
+			if (imageFile) {
+				updateStep("upload-image", "loading");
+				await new Promise((resolve) => setTimeout(resolve, 800));
+				updateStep("upload-image", "completed");
+			}
+			
+			// Step 2: Upload metadata
+			updateStep("upload-metadata", "loading");
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			updateStep("upload-metadata", "completed");
+			
+			// Step 3: Register license terms
+			updateStep("register-license", "loading");
+			await new Promise((resolve) => setTimeout(resolve, 1500));
 
-			// Start the actual mutation
-			const resultPromise = createStory.mutateAsync({
+			// Start the actual blockchain transactions
+			const result = await createStory.mutateAsync({
 				title: data.title,
 				description: data.description,
 				content: data.content,
@@ -166,27 +169,37 @@ export const CreateStoryForm = () => {
 				commercialRevShare: Number.parseFloat(data.commercialRevShare || "10"),
 			});
 
-			// Wait for both to complete
-			await progressPromise;
-			const result = await resultPromise;
-
-			// Complete remaining steps
+			// Step 3 complete
 			updateStep("register-license", "completed", result.licenseRegistrationTxHash);
+			
+			// Step 4: Mint NFT & Register IP
 			updateStep("mint-nft", "loading");
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 1500));
 			updateStep("mint-nft", "completed", result.mintTxHash);
 			
+			// Step 5: Attach license
 			updateStep("attach-license", "loading");
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 1500));
 			updateStep("attach-license", "completed", result.licenseAttachmentTxHash);
 			
+			// Step 6: Save to database
 			updateStep("save-database", "loading");
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 800));
 			updateStep("save-database", "completed");
 
+			// Store result and show success modal
 			setResult(result);
+			setShowProgressModal(false);
+			setShowSuccessModal(true);
+			
+			// Clear form state
 			form.reset({
-				creatorName: "Anonymous",
+				title: "",
+				description: "",
+				content: "",
+				creatorName: "",
+				mintingFee: "",
+				commercialRevShare: "10",
 			});
 			removeImage();
 		} catch (error) {
@@ -769,6 +782,29 @@ export const CreateStoryForm = () => {
 					steps={transactionSteps}
 					title="Creating Your Story"
 				/>
+
+				{/* Success Details Modal */}
+				{result && (
+					<SuccessDetailsModal
+						isOpen={showSuccessModal}
+						onClose={() => {
+							setShowSuccessModal(false);
+							setResult(null);
+						}}
+						details={{
+							ipId: result.ipId,
+							tokenId: result.tokenId,
+							ipfsHash: result.ipfsHash,
+							txHash: result.txHash,
+							mintTxHash: result.mintTxHash,
+							ipRegistrationTxHash: result.ipRegistrationTxHash,
+							licenseAttachmentTxHash: result.licenseAttachmentTxHash,
+							licenseTermsId: result.licenseTermsId,
+							commercialRevShare: result.commercialRevShare,
+							title: result.metadata.title,
+						}}
+					/>
+				)}
 			</motion.div>
 		</Card>
 	);
