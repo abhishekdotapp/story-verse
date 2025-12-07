@@ -151,10 +151,15 @@ export const useCreateStory = () => {
 			// Step 5: Register PIL Terms for Commercial Use
 			console.log("📝 Registering Commercial License Terms...");
 			
+			// Convert minting fee from IP tokens to Wei (18 decimals)
+			const mintingFeeInWei = input.mintingFee 
+				? BigInt(Math.floor(parseFloat(input.mintingFee) * 1e18))
+				: BigInt(1000000000000000000); // Default 1 WIP token
+			
 		const licenseResponse = await client.license.registerPILTerms({
 			transferable: true,
 			royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E" as `0x${string}`, // LAP Royalty Policy
-			defaultMintingFee: BigInt(1000000000000000000), // 1 WIP token (18 decimals)
+			defaultMintingFee: mintingFeeInWei,
 			expiration: BigInt(0),
 			commercialUse: true,
 			commercialAttribution: true,

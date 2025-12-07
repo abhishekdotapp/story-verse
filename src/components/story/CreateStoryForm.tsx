@@ -404,18 +404,19 @@ export const CreateStoryForm = () => {
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div className="space-y-2">
 								<label className="text-sm font-medium text-gray-300">
-									Minting Fee (IP Tokens)
+									Minting Fee (WIP Tokens)
 								</label>
 								<Input
 									type="number"
 									min="0"
-									step="0.01"
-									placeholder="0"
+									step="0.1"
+									placeholder="1"
+									defaultValue="1"
 									{...form.register("mintingFee")}
 									className="bg-gray-900/50"
 								/>
 								<p className="text-xs text-gray-400">
-									Fee required to mint a license for remixing
+									Fee others pay to remix your story (default: 1 WIP token)
 								</p>
 								{form.formState.errors.mintingFee && (
 									<p className="text-xs text-red-400">
