@@ -404,7 +404,7 @@ export const CreateStoryForm = () => {
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div className="space-y-2">
 								<label className="text-sm font-medium text-gray-300">
-									Minting Fee (WIP Tokens)
+									Remix Minting Fee (WIP Tokens)
 								</label>
 								<Input
 									type="number"
@@ -416,7 +416,7 @@ export const CreateStoryForm = () => {
 									className="bg-gray-900/50"
 								/>
 								<p className="text-xs text-gray-400">
-									Fee others pay to remix your story (default: 1 WIP token)
+									Fee that <strong>others pay</strong> to remix your story (you don't pay this)
 								</p>
 								{form.formState.errors.mintingFee && (
 									<p className="text-xs text-red-400">
@@ -426,7 +426,7 @@ export const CreateStoryForm = () => {
 							</div>
 							<div className="space-y-2">
 								<label className="text-sm font-medium text-gray-300">
-									Revenue Share (%)
+									Your Revenue Share (%)
 								</label>
 								<Input
 									type="number"
@@ -434,11 +434,12 @@ export const CreateStoryForm = () => {
 									max="100"
 									step="1"
 									placeholder="10"
+									defaultValue="10"
 									{...form.register("commercialRevShare")}
 									className="bg-gray-900/50"
 								/>
 								<p className="text-xs text-gray-400">
-									Percentage of derivative revenue you receive
+									Percentage of the minting fee <strong>you earn</strong> when someone remixes
 								</p>
 								{form.formState.errors.commercialRevShare && (
 									<p className="text-xs text-red-400">
@@ -458,13 +459,14 @@ export const CreateStoryForm = () => {
 							<strong>Commercial Use with Revenue Share</strong>
 						</p>
 						<ul className="text-xs text-gray-400 space-y-1 ml-4">
-							<li>✅ Commercial use allowed with WIP token minting fee</li>
+							<li>✅ You register your IP for <strong>free</strong> (only gas fees)</li>
+							<li>✅ Others pay the minting fee to remix your story</li>
+							<li>✅ You earn your revenue share % from each remix</li>
+							<li>✅ Revenue sharing enforced automatically on-chain</li>
 							<li>✅ Derivatives allowed with reciprocal terms</li>
-							<li>✅ Automatic revenue sharing enforced on-chain</li>
-							<li>✅ Attribution required</li>
 						</ul>
 						<p className="text-xs text-yellow-400 mt-2">
-							💡 Tip: Revenue share is enforced on-chain. When someone remixes your story, you automatically earn your percentage!
+							💡 Example: Set 2 WIP fee + 25% share → Remixer pays 2 WIP, you earn 0.5 WIP
 						</p>
 					</div>
 				</div>					<div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4">
